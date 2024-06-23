@@ -489,6 +489,7 @@ public class GameStartManagerBeginPatch
             if (__instance.startState == GameStartManager.StartingStates.Countdown)
             {
                 __instance.ResetStartState();
+                SoundManager.Instance.StopSound(__instance.gameStartSound);
                 return false;
             }
 

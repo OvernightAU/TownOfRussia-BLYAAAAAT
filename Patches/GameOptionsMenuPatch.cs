@@ -1,8 +1,12 @@
 using AmongUs.GameOptions;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Sentry.Internal;
+using Sentry.Internal.Extensions;
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.TextCore;
 using static TOHE.Translator;
 using Object = UnityEngine.Object;
 
@@ -39,22 +43,117 @@ public static class GameSettingMenuInitializeOptionsPatch
 {
     public static void Prefix(GameSettingMenu __instance)
     {
+
         // Unlocks map/impostor amount changing in online (for testing on your custom servers)
         // Changed to be able to change the map in online mode without having to re-establish the room.
         __instance.GameSettingsTab.HideForOnline = new Il2CppReferenceArray<Transform>(0);
     }
     // Add Dleks to map selection
-    public static void Postfix()
+    public static void Postfix(GameSettingMenu __instance)
     {
-        /*
-        items
-            .FirstOrDefault(
-                i => i.gameObject.activeSelf && i.name.Equals("MapName", StringComparison.OrdinalIgnoreCase))?
-            .GetComponent<KeyValueOption>()?
-            .Values?
-            // using .Insert will convert managed values and break the struct resulting in crashes
-            .System_Collections_IList_Insert((int)MapNames.Dleks, new Il2CppSystem.Collections.Generic.KeyValuePair<string, int>(Constants.MapNames[(int)MapNames.Dleks], (int)MapNames.Dleks));
-        */
+        var gamepreset = __instance.GamePresetsButton;
+
+        var gamesettings = __instance.GameSettingsButton;
+        __instance.GameSettingsButton.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
+        __instance.GameSettingsButton.transform.localPosition = new Vector3(gamesettings.transform.localPosition.x, gamepreset.transform.localPosition.y + 0.2f, gamesettings.transform.localPosition.z);
+
+        var rolesettings = __instance.RoleSettingsButton;
+        __instance.RoleSettingsButton.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
+        __instance.RoleSettingsButton.transform.localPosition = new Vector3(rolesettings.transform.localPosition.x, gamesettings.transform.localPosition.y - 0.4f, rolesettings.transform.localPosition.z);
+        //rolesettings.OnClick.RemoveAllListeners();
+        // button.OnClick.AddListener( () => {}); // figure this shit out later
+
+        //button 1
+        GameObject template = gamepreset.gameObject;
+        GameObject targetBox = UnityEngine.Object.Instantiate(template, gamepreset.transform);
+        targetBox.name = "System Settings";
+        targetBox.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+        targetBox.transform.localPosition = new Vector3(targetBox.transform.localPosition.x + 2.95f, rolesettings.transform.localPosition.y - 0.1f, targetBox.transform.localPosition.z);
+
+        _ = new LateTask(() =>
+        {
+            targetBox.transform.parent = null;
+            // gamepreset.transform.localScale = new Vector3(0f, 0f, 0f);
+            gamepreset.gameObject.SetActive(false);
+            targetBox.transform.parent = __instance.transform.Find("LeftPanel");
+        }, 0f);
+
+        PassiveButton button = targetBox.GetComponent<PassiveButton>();
+        button.OnClick.RemoveAllListeners();
+        button.OnClick.AddListener((Action)(() => 
+        {
+            Logger.Info("System Settings", "Button.OnClick");
+            __instance.ChangeTab(3, false);
+        }));
+        button.OnClick.AddListener((Action)(() =>
+        {
+            Logger.Info("System Settings", "Button.OnMouseOver");
+            __instance.ChangeTab(3, true);
+        }));
+        var label = button.transform.Find("FontPlacer/Text_TMP").GetComponent<TextMeshPro>();
+        _ = new LateTask(() => { label.text = "System Settings"; }, 0.05f);
+
+
+        //button 2
+        GameObject template2 = targetBox.gameObject;
+        GameObject targetBox2 = UnityEngine.Object.Instantiate(template2, targetBox.transform);
+        targetBox2.name = "Mod Settings";
+        targetBox2.transform.localScale = new Vector3(1f, 1f, 1f);
+        targetBox2.transform.localPosition = new Vector3(targetBox2.transform.localPosition.x, targetBox.transform.localPosition.y - 0.1f, targetBox2.transform.localPosition.z);
+
+        PassiveButton button2 = targetBox2.GetComponent<PassiveButton>();
+        button2.OnClick.RemoveAllListeners();
+        button2.OnClick.AddListener((Action)(() => Logger.Info("Mod Settings was called", "Mod Settings TEST")));
+        button.OnClick.AddListener((Action)(() =>
+        {
+            Logger.Info("Mod Settings", "Button.OnMouseOver");
+            __instance.ChangeTab(4, true);
+        }));
+        var label2 = button2.transform.Find("FontPlacer/Text_TMP").GetComponent<TextMeshPro>();
+        _ = new LateTask(() => { label2.text = "Mod Settings"; }, 0.05f);
+
+
+        //button 3
+        GameObject template3 = targetBox2.gameObject;
+        GameObject targetBox3 = UnityEngine.Object.Instantiate(template3, targetBox2.transform);
+        targetBox3.name = "Game Modifiers";
+        targetBox3.transform.localScale = new Vector3(1f, 1f, 1f);
+        targetBox3.transform.localPosition = new Vector3(targetBox3.transform.localPosition.x, targetBox2.transform.localPosition.y, targetBox3.transform.localPosition.z);
+
+        PassiveButton button3 = targetBox3.GetComponent<PassiveButton>();
+        button3.OnClick.RemoveAllListeners();
+        button3.OnClick.AddListener((Action)(() => Logger.Info("Game modifier was called", "Game Modifier TEST")));
+        button.OnClick.AddListener((Action)(() =>
+        {
+            Logger.Info("Game Modifiers", "Button.OnMouseOver");
+            __instance.ChangeTab(5, true);
+        }));
+        var label3 = button3.transform.Find("FontPlacer/Text_TMP").GetComponent<TextMeshPro>();
+        _ = new LateTask(() => { label3.text = "game Settings"; }, 0.05f);
+    }
+
+    public static void LoadRoleOptions(GameSettingMenu thiz)
+    {
+
+    }
+}
+[HarmonyPatch(typeof(GameSettingMenu), nameof(GameSettingMenu.ChangeTab))]
+public static class GameSettingMenuChangeTabPatch
+{
+    public static void Postfix(GameSettingMenu __instance, [HarmonyArgument(0)] int tabNum, [HarmonyArgument(1)] bool previewOnly)
+    {
+        switch (tabNum)
+        {
+            case 1:
+                __instance.MenuDescriptionText.text = DestroyableSingleton<TranslationController>.Instance.GetString(StringNames.GameSettingsDescription);
+                break;
+            case 2:
+                __instance.MenuDescriptionText.text = DestroyableSingleton<TranslationController>.Instance.GetString(StringNames.RoleSettingsDescription);
+                break;
+            case 3:
+                __instance.MenuDescriptionText.text = "System Settings for TOHE";
+                break;
+        }
     }
 }
 [HarmonyPatch(typeof(RolesSettingsMenu), nameof(RolesSettingsMenu.OnEnable))]
@@ -282,7 +381,7 @@ public static class GameOptionsMenuStartPatch
                 }, delay, "Settings", shoudLog: false);
 
                 delay += 0.1f;
-                
+
                 // FIX THIS SH
                 //tohMenu.Children = scOptions.ToArray();
                 tohSettings.gameObject.SetActive(false);
