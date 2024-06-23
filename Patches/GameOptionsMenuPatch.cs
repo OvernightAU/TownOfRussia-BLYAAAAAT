@@ -172,8 +172,8 @@ public static class RolesSettingsMenuAwakePatch
         //toheRoleSettings.
     }
 }
-//[HarmonyPatch(typeof(GameOptionsMenu), nameof(GameOptionsMenu.Awake))]
-//[HarmonyPriority(799)]
+[HarmonyPatch(typeof(GameOptionsMenu), nameof(GameOptionsMenu.Awake))]E
+[HarmonyPriority(799)]
 public static class GameOptionsMenuStartPatch
 {
     public static void fPostfix(GameOptionsMenu __instance)
